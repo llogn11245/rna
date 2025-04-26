@@ -1,0 +1,48 @@
+training:
+  epochs: 20
+  batch_size: 1
+  save_path: "/kaggle/working/save_folder"
+  train_path : "/kaggle/working/train.json"
+  dev_path : "/kaggle/working/test.json"
+  test_path : "/kaggle/working/test.json"
+  vocab_path : "/kaggle/working/vocab.json"
+  reload: False
+  
+
+
+# optimizer:
+#   name: Adam
+#   lr: 0.0001
+#   weight_decay: 0.0001
+optim:
+  type: sgd
+  lr: 0.0001
+  momentum: 0.9
+  weight_decay: 0
+  begin_to_adjust_lr: 60
+  nesterov: None
+  decay_rate: 0.5
+
+
+model:
+  in_features: 80
+  n_layers: 18
+  n_dec_layers: 2
+  d_model: 512
+  ff_size: 2048
+  h: 8
+  joint_size: 512
+  enc_left_size: 20
+  enc_right_size: 20
+  dec_left_size: 20
+  dec_right_size: 0
+  p_dropout: 0.1
+  model_name: "transformer_transducer"
+
+
+
+rnnt_loss:
+  blank: 4
+  reduction: "mean" 
+
+

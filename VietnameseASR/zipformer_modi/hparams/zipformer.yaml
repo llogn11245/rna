@@ -1,0 +1,175 @@
+seed: 123456
+set_torch_seed: !apply:torch.manual_seed [!ref <seed>]
+set_cuda_seed: !apply:torch.cuda.manual_seed_all [!ref <seed>]
+set_np_seed: !apply:numpy.random.seed [!ref <seed>]
+set_random_seed: !apply:random.seed [!ref <seed>]
+
+
+output_dir: /data/npl/Speech2Text/VietnameseASR-main/results/zipformer_modi
+wer_file: !ref <output_dir>/wer.txt
+save_folder: !ref <output_dir>/save_lol
+train_log: !ref <output_dir>/train_log.txt
+
+
+train_dataset: "/data/npl/Speech2Text/Speech-Transformer-master/vlsp_data/custom_data/train_vlsp.json"
+valid_dataset: "/data/npl/Speech2Text/Speech-Transformer-master/vlsp_data/custom_data/test_vlsp.json"
+test_dataset: "/data/npl/Speech2Text/Speech-Transformer-master/vlsp_data/custom_data/test_vlsp.json"
+dataset_dir: ""
+
+
+number_of_epochs: 100
+batch_size: 8
+ctc_weight: 0.4
+grad_accumulation_factor: 2
+max_grad_norm: 5.0
+loss_reduction: batchmean
+num_workers: 4
+lr_adam: 0.001
+
+
+sample_rate: 16000
+n_fft: 400
+n_mels: 80
+input_feat_per_channel: 80  # Thêm rõ ràng để !ref dùng được
+
+
+train_dataloader_opts:
+  batch_size: !ref <batch_size>
+  shuffle: True
+  num_workers: !ref <num_workers>
+
+valid_dataloader_opts:
+  batch_size: 1
+
+test_dataloader_opts:
+  batch_size: 1
+
+
+joint_ctc: True
+d_model: 384
+nhead: 8
+num_encoder_layers: 6
+num_decoder_layers: 6
+d_ffn: 2048
+transformer_dropout: 0.1
+activation: !name:torch.nn.GELU
+
+
+output_neurons: 6744
+blank_index: 0
+label_smoothing: 0.0
+pad_index: 0
+bos_index: 1
+eos_index: 2
+
+
+min_decode_ratio: 0.0
+max_decode_ratio: 1.0
+valid_search_interval: 20
+valid_beam_size: 1
+test_beam_size: 1
+ctc_weight_decode: 0.4
+
+
+set_python_path: !apply:sys.path.append ["/data/npl/Speech2Text/VietnameseASR-main"]
+
+
+zipformer: !new:zipformer_file.zipformer_debug.ZipFormerEncoderDecoder
+  input_feat_per_channel: !ref <input_feat_per_channel>
+  tgt_vocab: !ref <output_neurons>
+  output_downsampling_factor: 2
+  encoder_dims: (384, 384)
+  attention_dim: (256, 256)
+  encoder_unmasked_dims: (256, 256)
+  zipformer_downsampling_factors: (2, 4)
+  nhead: (8, 8)
+  feedforward_dim: (1536, 2048)
+  num_encoder_layers: (12, 12)
+  dropout: !ref <transformer_dropout>
+  cnn_module_kernels: (31, 31)
+  pos_dim: 4
+  warmup_batches: 4000.0
+  d_model: !ref <d_model>
+  causal: False
+  normalize_before: True
+  activation: !ref <activation>
+  num_decoder_layers: !ref <num_decoder_layers>
+  d_ffn: !ref <d_ffn>
+  decoder_kdim: !ref <d_model>
+  decoder_vdim: !ref <d_model>
+  max_length: 5000
+  positional_encoding: fixed_abs_sine
+
+ctc_lin: !new:speechbrain.nnet.linear.Linear
+  input_size: !ref <d_model>
+  n_neurons: !ref <output_neurons>
+
+seq_lin: !new:speechbrain.nnet.linear.Linear
+  input_size: !ref <d_model>
+  n_neurons: !ref <output_neurons>
+
+normalize: !new:speechbrain.processing.features.InputNormalization
+  norm_type: global
+  update_until_epoch: 4
+
+modules:
+  model: !ref <zipformer>
+  seq_lin: !ref <seq_lin>
+  ctc_lin: !ref <ctc_lin>
+  normalize: !ref <normalize>
+
+model: !new:torch.nn.ModuleList
+  - [!ref <zipformer>, !ref <seq_lin>, !ref <ctc_lin>]
+
+Adam: !name:torch.optim.Adam
+  lr: !ref <lr_adam>
+  betas: (0.9, 0.98)
+  eps: 0.000000001
+
+valid_search: !new:speechbrain.decoders.S2STransformerBeamSearch
+  modules: [!ref <zipformer>, !ref <seq_lin>, !ref <ctc_lin>]
+  bos_index: !ref <bos_index>
+  eos_index: !ref <eos_index>
+  blank_index: !ref <blank_index>
+  min_decode_ratio: !ref <min_decode_ratio>
+  max_decode_ratio: !ref <max_decode_ratio>
+  beam_size: !ref <valid_beam_size>
+  ctc_weight: !ref <ctc_weight_decode>
+  using_eos_threshold: False
+  length_normalization: False
+
+log_softmax: !new:torch.nn.LogSoftmax
+  dim: -1
+
+ctc_cost: !name:speechbrain.nnet.losses.ctc_loss
+  blank_index: !ref <blank_index>
+  reduction: !ref <loss_reduction>
+
+seq_cost: !name:speechbrain.nnet.losses.kldiv_loss
+  label_smoothing: !ref <label_smoothing>
+  reduction: !ref <loss_reduction>
+
+noam_annealing: !new:speechbrain.nnet.schedulers.NoamScheduler
+  lr_initial: !ref <lr_adam>
+  n_warmup_steps: 25000
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+  checkpoints_dir: !ref <save_folder>
+  recoverables:
+    model: !ref <model>
+    normalizer: !ref <normalize>
+    counter: !ref <epoch_counter>
+
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+  limit: !ref <number_of_epochs>
+
+compute_features: !new:speechbrain.lobes.features.Fbank
+  sample_rate: !ref <sample_rate>
+  n_fft: !ref <n_fft>
+  n_mels: !ref <n_mels>
+
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+  save_file: !ref <train_log>
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+acc_computer: !name:speechbrain.utils.Accuracy.AccuracyStats

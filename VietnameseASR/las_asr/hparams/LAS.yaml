@@ -1,0 +1,131 @@
+seed: 123456
+set_torch_seed: !apply:torch.manual_seed [!ref <seed>]
+set_cuda_seed: !apply:torch.cuda.manual_seed_all [!ref <seed>]
+set_np_seed: !apply:numpy.random.seed [!ref <seed>]
+set_random_seed: !apply:random.seed [!ref <seed>]
+
+output_dir: !ref results/las_6/
+wer_file: !ref <output_dir>/wer.txt
+save_folder: !ref <output_dir>/save
+train_log: !ref <output_dir>/train_log.txt
+
+train_dataset: "../LSVSC_train.json"
+valid_dataset: "../LSVSC_valid.json"
+test_dataset: "../LSVSC_test.json"
+dataset_dir: "/home/datasets/dsp_new_100h/data"
+
+# Training parameters
+number_of_epochs: 50
+batch_size: 16
+grad_accumulation_factor: 1
+max_grad_norm: 400
+loss_reduction: 'mean'
+num_workers: 4
+valid_search_interval: 25
+
+criterion: !new:torch.nn.CrossEntropyLoss
+  reduction: !ref <loss_reduction>
+
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+# stages related parameters
+lr_adam: 0.0003
+
+Adam: !name:torch.optim.Adam
+    lr: !ref <lr_adam>
+    weight_decay: 0.00001
+    # betas: (0.9, 0.98)
+    # eps: 0.000000001
+
+scheduler: !new:speechbrain.nnet.schedulers.LinearWarmupScheduler
+    initial_value: !ref <lr_adam>
+    num_warmup_steps: 7105
+    num_training_steps: 142100
+
+# Feature parameters
+sample_rate: 16000
+n_fft: 400
+n_mels: 80
+
+compute_features: !new:speechbrain.lobes.features.Fbank
+    sample_rate: !ref <sample_rate>
+    n_fft: !ref <n_fft>
+    n_mels: !ref <n_mels>
+
+# Dataloader options
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    shuffle: True
+    num_workers: !ref <num_workers>
+
+valid_dataloader_opts:
+    batch_size: 1
+
+test_dataloader_opts:
+    batch_size: 1
+
+### Model parameters ###
+rnn_type: "lstm"
+encoder_layers: 4
+encoder_size: 512
+decoder_layers: 2
+decoder_size: 512
+dropout: 0.3
+bidirectional: true
+teacher_forcing: 1
+max_len: 100
+vocab_size: 5000
+sos_token: 0
+eos_token: 1
+
+encoder: !new:models.EncoderRNN
+  input_size: !ref <n_mels>
+  hidden_size: !ref <encoder_size>
+  n_layers: !ref <encoder_layers>
+  dropout_p: !ref <dropout>
+  bidirectional: !ref <bidirectional>
+  rnn_cell: !ref <rnn_type>
+  variable_lengths: False
+
+decoder: !new:models.DecoderRNN
+  vocab_size: !ref <vocab_size>
+  max_len: !ref <max_len>
+  hidden_size: !ref <decoder_size>
+  encoder_size: !ref <encoder_size>
+  sos_id: !ref <sos_token>
+  eos_id: !ref <eos_token>
+  n_layers: !ref <decoder_layers>
+  rnn_cell: !ref <rnn_type>
+  dropout_p: !ref <dropout>
+  bidirectional_encoder: !ref <bidirectional>
+
+seq2seq: !new:models.Seq2Seq
+  encoder: !ref <encoder>
+  decoder: !ref <decoder>
+  tgram: null
+
+modules:
+  seq2seq: !ref <seq2seq>
+
+model: !new:torch.nn.ModuleList
+    - [!ref <seq2seq>]
+
+normalize: !new:speechbrain.processing.features.InputNormalization
+    norm_type: global
+    update_until_epoch: 4
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        model: !ref <model>
+        scheduler: !ref <scheduler>
+        normalizer: !ref <normalize>
+        # tgram: !ref <Tgram>
+        counter: !ref <epoch_counter>
+
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+acc_computer: !name:speechbrain.utils.Accuracy.AccuracyStats

@@ -1,0 +1,188 @@
+seed: 123456
+set_torch_seed: !apply:torch.manual_seed [!ref <seed>]
+set_cuda_seed: !apply:torch.cuda.manual_seed_all [!ref <seed>]
+set_np_seed: !apply:numpy.random.seed [!ref <seed>]
+set_random_seed: !apply:random.seed [!ref <seed>]
+
+output_dir: !ref /data/npl/Speech2Text/VietnameseASR-main/results/vggtrans_modi
+wer_file: !ref <output_dir>/wer.txt
+save_folder: !ref <output_dir>/save_lol
+train_log: !ref <output_dir>/train_log.txt
+
+train_dataset: "/data/npl/Speech2Text/Speech-Transformer-master/vlsp_data/custom_data/train_vlsp.json"
+valid_dataset: "/data/npl/Speech2Text/Speech-Transformer-master/vlsp_data/custom_data/test_vlsp.json"
+test_dataset: "/data/npl/Speech2Text/Speech-Transformer-master/vlsp_data/custom_data/test_vlsp.json"
+dataset_dir: ""
+
+# Training parameters
+number_of_epochs: 100
+batch_size: 16
+ctc_weight: 0.4
+grad_accumulation_factor: 2
+max_grad_norm: 5.0
+loss_reduction: 'batchmean'
+num_workers: 4
+
+lr_adam: 0.001
+
+# Feature parameters
+sample_rate: 16000
+n_fft: 400
+n_mels: 80
+
+# Dataloader options
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    shuffle: True
+    num_workers: !ref <num_workers>
+
+valid_dataloader_opts:
+    batch_size: 1
+
+test_dataloader_opts:
+    batch_size: 1
+
+####################### Model parameters ###########################
+# Transformer parameters
+joint_ctc: True
+d_model: 256
+nhead: 4
+num_encoder_layers: 6
+num_decoder_layers: 6
+d_ffn: 2048
+transformer_dropout: 0.1
+activation: !name:torch.nn.GELU
+
+# These don't matter, gonna get overridden automatically based on the vocab file
+output_neurons: 6744
+blank_index: 0
+label_smoothing: 0.0
+pad_index: 0
+bos_index: 1
+eos_index: 2
+
+# Decoding parameters
+min_decode_ratio: 0.0
+max_decode_ratio: 1.0
+valid_search_interval: 20
+valid_beam_size: 1
+test_beam_size: 1
+ctc_weight_decode: 0.4
+
+############################## models ################################
+
+vggblock_config_enc:
+  - (64, 3, 2, 2, True)
+  - (128, 3, 2, 2, True)
+
+vggblock_config_dec:
+  - (256, 3, True)
+  - (256, 3, True)
+  - (256, 3, True)
+  - (256, 3, True)
+
+set_python_path: !apply:sys.path.append ["/data/npl/Speech2Text/VietnameseASR-main"]
+
+# /data/npl/Speech2Text/VietnameseASR-main/vggtransformer_asr
+vggtransformer: !new:vggtransformer_asr.vggtrans.VGGTransformerEncoderDecoder
+    input_size: 2560  # Số feature đầu vào sau VGG
+    d_model: !ref <d_model>  # Số chiều của embedding trong Transformer
+    num_decoder_layers: 6 # Số tầng Decoder (nếu chưa có định nghĩa trong nơi khác)
+    num_encoder_layers: 12  # Số tầng Encoder (nếu chưa có định nghĩa trong nơi khác)
+    tgt_vocab: !ref <output_neurons>  # Giả định vocab có 1000 từ
+    vggblock_config_enc: !ref <vggblock_config_enc>  # Kiến trúc VGG encoder
+    vggblock_config_dec: !ref <vggblock_config_dec>  # Kiến trúc VGG decoder
+    layerdrop_prob: 0.2
+    attention_type: regularMHA
+    in_channels: 1
+    nhead: !ref <nhead>
+    causal: False
+    input_feat_per_channel: 80
+    output_hidden_states: False
+    dropout: 0.1  # Thêm dropout
+    d_ffn: 2048  # Thêm feedforward network size
+    activation: !name:torch.nn.GELU  # Thêm activation function (nếu cần dùng custom, phải sửa code để nhận nn.ReLU thay vì string)
+    normalize_before: True  # Thêm normalize_before nếu cần
+
+
+
+ctc_lin: !new:speechbrain.nnet.linear.Linear
+    input_size: !ref <d_model>
+    n_neurons: 6744
+
+seq_lin: !new:speechbrain.nnet.linear.Linear
+    input_size: !ref <d_model>
+    n_neurons: 6744
+
+normalize: !new:speechbrain.processing.features.InputNormalization
+    norm_type: global
+    update_until_epoch: 4
+
+modules:
+    model: !ref <vggtransformer>
+    seq_lin: !ref <seq_lin>
+    ctc_lin: !ref <ctc_lin>
+    normalize: !ref <normalize>
+
+
+model: !new:torch.nn.ModuleList
+    - [!ref <vggtransformer>, !ref <seq_lin>, !ref <ctc_lin>]
+  
+
+
+
+Adam: !name:torch.optim.Adam
+    lr: !ref <lr_adam>
+    betas: (0.9, 0.98)
+    eps: 0.000000001
+
+valid_search: !new:speechbrain.decoders.S2STransformerBeamSearch
+    modules: [!ref <vggtransformer>, !ref <seq_lin>, !ref <ctc_lin>]
+    bos_index: !ref <bos_index>
+    eos_index: !ref <eos_index>
+    blank_index: !ref <blank_index>
+    min_decode_ratio: !ref <min_decode_ratio>
+    max_decode_ratio: !ref <max_decode_ratio>
+    beam_size: !ref <valid_beam_size>
+    ctc_weight: !ref <ctc_weight_decode>
+    using_eos_threshold: False
+    length_normalization: False
+
+log_softmax: !new:torch.nn.LogSoftmax
+    dim: -1
+
+ctc_cost: !name:speechbrain.nnet.losses.ctc_loss
+    blank_index: !ref <blank_index>
+    reduction: !ref <loss_reduction>
+
+seq_cost: !name:speechbrain.nnet.losses.kldiv_loss
+    label_smoothing: !ref <label_smoothing>
+    reduction: !ref <loss_reduction>
+
+
+noam_annealing: !new:speechbrain.nnet.schedulers.NoamScheduler
+    lr_initial: !ref <lr_adam>
+    n_warmup_steps: 8000
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        model: !ref <model>
+        noam_scheduler: !ref <noam_annealing>
+        normalizer: !ref <normalize>
+        # tgram: !ref <Tgram>
+        counter: !ref <epoch_counter>
+
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+compute_features: !new:speechbrain.lobes.features.Fbank
+    sample_rate: !ref <sample_rate>
+    n_fft: !ref <n_fft>
+    n_mels: !ref <n_mels>
+
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+acc_computer: !name:speechbrain.utils.Accuracy.AccuracyStats

@@ -1,0 +1,185 @@
+seed: 123456
+set_torch_seed: !apply:torch.manual_seed [!ref <seed>]
+set_cuda_seed: !apply:torch.cuda.manual_seed_all [!ref <seed>]
+set_np_seed: !apply:numpy.random.seed [!ref <seed>]
+set_random_seed: !apply:random.seed [!ref <seed>]
+
+output_dir: !ref results/Transformer_AdaptiveSpecAugment
+wer_file: !ref <output_dir>/wer.txt
+save_folder: !ref <output_dir>/save
+train_log: !ref <output_dir>/train_log.txt
+
+train_dataset: "../LSVSC_train.json"
+valid_dataset: "../LSVSC_valid.json"
+test_dataset: "../LSVSC_test.json"
+dataset_dir: "/home/datasets/dsp_new_100h/data"
+
+# Training parameters
+number_of_epochs: 100
+batch_size: 32
+ctc_weight: 0.3
+grad_accumulation_factor: 1
+max_grad_norm: 5.0
+loss_reduction: 'batchmean'
+num_workers: 4
+
+lr_adam: 0.001
+
+# Feature parameters
+sample_rate: 16000
+n_fft: 400
+n_mels: 80
+
+# Dataloader options
+train_dataloader_opts:
+    batch_size: !ref <batch_size>
+    shuffle: True
+    num_workers: !ref <num_workers>
+
+valid_dataloader_opts:
+    batch_size: 1
+
+test_dataloader_opts:
+    batch_size: 1
+
+####################### Model parameters ###########################
+# Transformer parameters
+joint_ctc: True
+d_model: 144
+nhead: 4
+num_encoder_layers: 12
+num_decoder_layers: 4
+d_ffn: 1024
+transformer_dropout: 0.1
+activation: !name:torch.nn.GELU
+
+# These don't matter, gonna get overridden automatically based on the vocab file
+output_neurons: 5000
+blank_index: 0
+label_smoothing: 0.0
+pad_index: 0
+bos_index: 1
+eos_index: 2
+
+# Decoding parameters
+min_decode_ratio: 0.0
+max_decode_ratio: 1.0
+valid_search_interval: 20
+valid_beam_size: 1
+test_beam_size: 1
+ctc_weight_decode: 0.4
+
+############################## models ################################
+augmentation: !new:adaptive_augment.AdaptiveSpecAugment
+   time_warp: False
+   time_warp_window: 5
+   time_warp_mode: bicubic
+   freq_mask: True
+   n_freq_mask: 2
+   time_mask: True
+   n_time_mask: 2
+   replace_with_zero: False
+   freq_mask_width: 20
+   time_mask_width: 0.04 # Automatically use normal augmentation if time_mask_width is an integer
+   max_n_mask: 2 # Only effective when adaptive spec augmentation is used
+
+CNN: !new:speechbrain.lobes.models.convolution.ConvolutionFrontEnd
+    input_shape: (8, 10, 80)
+    num_blocks: 3
+    num_layers_per_block: 1
+    out_channels: (64, 64, 64)
+    kernel_sizes: (5, 5, 1)
+    strides: (2, 2, 1)
+    residuals: (False, False, True)
+
+Transformer: !new:speechbrain.lobes.models.transformer.TransformerASR.TransformerASR
+    input_size: 1280 #2560
+    tgt_vocab: !ref <output_neurons>
+    d_model: !ref <d_model>
+    nhead: !ref <nhead>
+    num_encoder_layers: !ref <num_encoder_layers>
+    num_decoder_layers: !ref <num_decoder_layers>
+    d_ffn: !ref <d_ffn>
+    dropout: !ref <transformer_dropout>
+    activation: !ref <activation>
+    encoder_module: transformer
+    attention_type: regularMHA
+    normalize_before: True
+    causal: False
+
+ctc_lin: !new:speechbrain.nnet.linear.Linear
+    input_size: !ref <d_model>
+    n_neurons: !ref <output_neurons>
+
+seq_lin: !new:speechbrain.nnet.linear.Linear
+    input_size: !ref <d_model>
+    n_neurons: !ref <output_neurons>
+
+normalize: !new:speechbrain.processing.features.InputNormalization
+    norm_type: global
+    update_until_epoch: 4
+
+modules:
+    CNN: !ref <CNN>
+    Transformer: !ref <Transformer>
+    seq_lin: !ref <seq_lin>
+    ctc_lin: !ref <ctc_lin>
+    normalize: !ref <normalize>
+
+model: !new:torch.nn.ModuleList
+    - [!ref <CNN>, !ref <Transformer>, !ref <seq_lin>, !ref <ctc_lin>]
+
+Adam: !name:torch.optim.Adam
+    lr: !ref <lr_adam>
+    betas: (0.9, 0.98)
+    eps: 0.000000001
+
+valid_search: !new:speechbrain.decoders.S2STransformerBeamSearch
+    modules: [!ref <Transformer>, !ref <seq_lin>, !ref <ctc_lin>]
+    bos_index: !ref <bos_index>
+    eos_index: !ref <eos_index>
+    blank_index: !ref <blank_index>
+    min_decode_ratio: !ref <min_decode_ratio>
+    max_decode_ratio: !ref <max_decode_ratio>
+    beam_size: !ref <valid_beam_size>
+    ctc_weight: !ref <ctc_weight_decode>
+    using_eos_threshold: False
+    length_normalization: False
+
+log_softmax: !new:torch.nn.LogSoftmax
+    dim: -1
+
+ctc_cost: !name:speechbrain.nnet.losses.ctc_loss
+    blank_index: !ref <blank_index>
+    reduction: !ref <loss_reduction>
+
+seq_cost: !name:speechbrain.nnet.losses.kldiv_loss
+    label_smoothing: !ref <label_smoothing>
+    reduction: !ref <loss_reduction>
+
+noam_annealing: !new:speechbrain.nnet.schedulers.NoamScheduler
+    lr_initial: !ref <lr_adam>
+    n_warmup_steps: 25000
+
+checkpointer: !new:speechbrain.utils.checkpoints.Checkpointer
+    checkpoints_dir: !ref <save_folder>
+    recoverables:
+        model: !ref <model>
+        noam_scheduler: !ref <noam_annealing>
+        normalizer: !ref <normalize>
+        # tgram: !ref <Tgram>
+        counter: !ref <epoch_counter>
+
+epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
+    limit: !ref <number_of_epochs>
+
+compute_features: !new:speechbrain.lobes.features.Fbank
+    sample_rate: !ref <sample_rate>
+    n_fft: !ref <n_fft>
+    n_mels: !ref <n_mels>
+
+train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
+    save_file: !ref <train_log>
+
+error_rate_computer: !name:speechbrain.utils.metric_stats.ErrorRateStats
+acc_computer: !name:speechbrain.utils.Accuracy.AccuracyStats
