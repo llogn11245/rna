@@ -36,11 +36,11 @@ model:
 training:
   epochs: 100
   batch_size: 1
-  save_path: "/kaggle/working/save_folder"
-  train_path : "/kaggle/working/train.json"
-  dev_path : "/kaggle/working/test.json"
-  test_path : "/kaggle/working/test.json"
-  vocab_path : "/kaggle/working/vocab.json"
+  save_path: C:\\Users\\longg\\Downloads\\speech2text-main\\rna
+  train_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\train_w2i.json"
+  dev_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\test_w2i.json"
+  test_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\test_w2i.json"
+  vocab_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\vocab_w2i.json"
   reload: False
 
 
