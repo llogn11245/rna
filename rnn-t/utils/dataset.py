@@ -14,7 +14,7 @@ def load_json(path):
     """
     import json
 
-    with open(path, "r") as f:
+    with open(path, "r", encoding='utf-8') as f:
         data = json.load(f)
     return data
 
@@ -67,25 +67,23 @@ class Speech2Text(Dataset):
 
         log_mel = mel_extractor(waveform.unsqueeze(0))
         log_mel = torchaudio.functional.amplitude_to_DB(log_mel, multiplier=10.0, amin=1e-10, db_multiplier=0)
-        
-        # return log_mel.squeeze(0).transpose(0, 1)  # [T, 80]
-        
         log_mel = log_mel.squeeze(0)
 
-        mean = log_mel.mean(dim=1, keepdim=True)
-        std = log_mel.std(dim=1, keepdim=True)
-        normalized_log_mel_spec = (log_mel - mean) / (std + 1e-5)
+        # return log_mel.squeeze(0).transpose(0, 1)  # [T, 80]
+        
+        # mean = log_mel.mean(dim=1, keepdim=True)
+        # std = log_mel.std(dim=1, keepdim=True)
+        # normalized_log_mel_spec = (log_mel - mean) / (std + 1e-5)
 
-        spec = self.freq_mask(normalized_log_mel_spec)
-        spec = self.time_mask(spec)
+        # spec = self.freq_mask(normalized_log_mel_spec)
+        # spec = self.time_mask(spec)
 
-        return spec.transpose(0, 1)  # [T, 80]
+        # return spec.transpose(0, 1)  # [T, 80]
     
         mean = log_mel.mean(dim=1, keepdim=True)
         std = log_mel.std(dim=1, keepdim=True)
         normalized_log_mel_spec = (log_mel - mean) / (std + 1e-5)
 
-        
         return normalized_log_mel_spec.transpose(0, 1)  # [T, 80]
     
     def extract_from_path(self, wave_path):
