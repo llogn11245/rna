@@ -43,7 +43,6 @@ def debug_batch(model, batch, criterion, device, is_training=True):
     output = model(speech, fbank_len.long(), decoder_input.int(), text_len.long())
     
     print(f"Model output shape: {output.shape}")
-    print(f"Sample model output values: {output[0, :3, :3]}")  # Print first few values
 
     # Compute loss
     loss = criterion(output, target_text, fbank_len, text_len)
