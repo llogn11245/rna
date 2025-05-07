@@ -131,7 +131,7 @@ def main():
 
     # ==== Loss ====
     # criterion = RNNTLoss(config["rnnt_loss"]["blank"], config["rnnt_loss"]["reduction"])
-    criterion = RNALoss(config["rna_loss"]["blank"], config["rnnt_loss"]["reduction"])
+    criterion = RNALoss(config["rna_loss"]["blank"], config["rna_loss"]["reduction"])
 
     # ==== Optimizer ====
     optimizer = Optimizer(model.parameters(), config['optim'])
