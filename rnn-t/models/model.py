@@ -79,38 +79,6 @@ class Transducer(nn.Module):
         # loss = self.crit(logits, targets.int(), inputs_length.int(), targets_length.int())
         return logits
 
-    # def recognize(self, inputs, inputs_length):
-    #     batch_size = inputs.size(0)
-    #     enc_states, _ = self.encoder(inputs, inputs_length)
-
-    #     zero_token = torch.LongTensor([[1]])
-    #     if inputs.is_cuda:
-    #         zero_token = zero_token.cuda()
-
-    #     def decode(enc_state, lengths):
-    #         token_list = []
-    #         dec_state, hidden = self.decoder(zero_token)
-
-    #         for t in range(lengths):
-    #             logits = self.joint(enc_state[t].view(-1), dec_state.view(-1))
-    #             out = F.softmax(logits, dim=0).detach()
-    #             pred = torch.argmax(out, dim=0).item()
-
-    #             if pred == 2: 
-    #                 break
-
-    #             if pred not in (0,1,2,4):
-    #                 token_list.append(pred)
-    #                 token = torch.LongTensor([[pred]])
-    #                 if enc_state.is_cuda:
-    #                     token = token.cuda()
-    #                 dec_state, hidden = self.decoder(token, hidden=hidden)
-
-    #         return token_list
-
-    #     results = [decode(enc_states[i], inputs_length[i]) for i in range(batch_size)]
-    #     return results
-
     def recognize(self, inputs, inputs_length):
         batch_size = inputs.size(0)
         enc_states, _ = self.encoder(inputs, inputs_length)
