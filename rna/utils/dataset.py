@@ -67,10 +67,9 @@ class Speech2Text(Dataset):
 
         log_mel = mel_extractor(waveform.unsqueeze(0))
         log_mel = torchaudio.functional.amplitude_to_DB(log_mel, multiplier=10.0, amin=1e-10, db_multiplier=0)
-        
-        # return log_mel.squeeze(0).transpose(0, 1)  # [T, 80]
-        
         log_mel = log_mel.squeeze(0)
+
+        # return log_mel.squeeze(0).transpose(0, 1)  # [T, 80]
 
         # mean = log_mel.mean(dim=1, keepdim=True)
         # std = log_mel.std(dim=1, keepdim=True)
