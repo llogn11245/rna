@@ -3,13 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LocalCNNEncoder(nn.Module):
-    def __init__(self, input_dim=192, channels=[100, 100, 64, 64], kernel_size=5):
+    def __init__(self, channels=[100, 100, 64, 64], kernel_size=5):
         super().__init__()
         self.conv_layers = nn.ModuleList()
         padding = (kernel_size - 1, 0)  # Causal padding for time dimension
         
         for i in range(4):
-            in_ch = input_dim if i == 0 else channels[i-1]
             self.conv_layers.append(nn.Sequential(
                 nn.Conv2d(1, channels[i], kernel_size=(kernel_size, 1),
                           stride=1, padding=padding),
