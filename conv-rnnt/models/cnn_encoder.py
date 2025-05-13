@@ -12,14 +12,21 @@ class LocalCNNEncoder(nn.Module):
             self.conv_layers.append(nn.Sequential(
                 nn.Conv2d(1, channels[i], kernel_size=(kernel_size, 1),
                           stride=1, padding=padding),
-                nn.BatchNorm2d(channels[i]),
+                # nn.BatchNorm2d(channels[i]),
                 nn.ReLU(),
                 nn.ConstantPad2d((0, 0, 0, -padding[0]), 0)  # Trim padding
             ))
 
     def forward(self, x):
-        # x: [B, T, F]
-        x = x.unsqueeze(1)  # Add channel dim [B, 1, T, F]
+        """
+        Apply local CNN layers to the input tensor.
+        Args:
+            x (torch.Tensor): Input tensor of shape [B, T, F].
+        Returns:
+            torch.Tensor: Output tensor after applying local CNN layers -> shape [B, T, C] with C: number of channels.
+        """
+        # x: [B, T, F] (eg. [B, 100, 80])
+        x = x.unsqueeze(1)  # Add channel dim [B, 1, T, F] (eg. [B, 1, 100, 80])
         for layer in self.conv_layers:
             x = layer(x)
         x = x.squeeze(1).transpose(1, 2)  # [B, T, C]
