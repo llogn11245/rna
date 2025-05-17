@@ -6,10 +6,10 @@ class LocalCNNBlock(nn.Module):
     def __init__(self):
         super(LocalCNNBlock, self).__init__()
         # Không sử dụng padding mặc định trong Conv2d, sẽ pad thủ công
-        self.conv1 = nn.Conv2d(1, 100, kernel_size=5, stride=1, padding=0)
-        self.conv2 = nn.Conv2d(100, 100, kernel_size=5, stride=1, padding=0)
-        self.conv3 = nn.Conv2d(100, 64, kernel_size=5, stride=1, padding=0)
-        self.conv4 = nn.Conv2d(64, 64, kernel_size=5, stride=1, padding=0)
+        self.conv1 = nn.Conv2d(1, 100, kernel_size=(5,5), stride=(1,1), padding=0)
+        self.conv2 = nn.Conv2d(100, 100, kernel_size=(5,5), stride=(1,1), padding=0)
+        self.conv3 = nn.Conv2d(100, 64, kernel_size=(5,5), stride=(1,1), padding=0)
+        self.conv4 = nn.Conv2d(64, 64, kernel_size=(5,5), stride=(1,1), padding=0)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -29,7 +29,7 @@ class LocalCNNBlock(nn.Module):
 
         return x  # [B, 64, T, F]
 
-# Thử nghiệm
+# test local cnn block
 block = LocalCNNBlock()
 input_data = torch.randn(1, 1, 100, 80)  # Ví dụ: B=1, T=100, F=80
 output = block(input_data)
