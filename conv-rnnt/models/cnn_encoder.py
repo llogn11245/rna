@@ -120,3 +120,7 @@ class GlobalCNNEncoder(nn.Module):
         for block in self.blocks:
             x = block(x)
         return x
+    
+def build_cnn_encoder(input_dim, hidden_dim, kernel_size, n_layers=6):
+    x =0
+    return x
