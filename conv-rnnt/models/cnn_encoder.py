@@ -122,5 +122,6 @@ class GlobalCNNEncoder(nn.Module):
         return x
     
 def build_cnn_encoder(config):
-    x =0
+    local_cnn = LocalCNNEncoder()
+    global_cnn = GlobalCNNEncoder()
     return x
