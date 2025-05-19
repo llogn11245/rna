@@ -121,6 +121,7 @@ class GlobalCNNEncoder(nn.Module):
             x = block(x)
         return x
     
+# Ta cần sửa lại output của local cnn và đưa vào input của global cnn, sau đó sẽ concat 2 block lại với nhau
 def build_cnn_encoder(config):
     local_cnn = LocalCNNEncoder()
     global_cnn = GlobalCNNEncoder()
