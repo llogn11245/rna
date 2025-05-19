@@ -109,29 +109,14 @@ class GlobalCNNBlock(nn.Module):
         x = x.transpose(1, 2)
         return x
     
-# class GlobalCNNEncoder(nn.Module):
-#     def __init__(self, input_dim, hidden_dim, kernel_size, dilation_rates):
-#         super(GlobalCNNEncoder, self).__init__()
-#         self.cnn_blocks = nn.ModuleList()
-#         for dilation in dilation_rates:
-#             self.cnn_blocks.append(GlobalCNNBlock(input_dim, hidden_dim, kernel_size, dilation))
-        
-#         # LSTM
-#         self.lstm = nn.LSTM(input_dim, hidden_dim // 2, num_layers=1, 
-#                             batch_first=True, bidirectional=True)
-        
-#         # Linear projection
-#         self.linear = nn.Linear(hidden_dim, input_dim)
-
-#     def forward(self, x):
-#         # x: [B, T, D]
-#         for block in self.cnn_blocks:
-#             x = block(x)
-        
-#         # LSTM
-#         x, _ = self.lstm(x)
-        
-#         # Linear projection
-#         x = self.linear(x)
-        
-#         return x  # [B, T, D]
+class GlobalCNNEncoder(nn.Module):
+    def __init__(self, input_dim, hidden_dim, kernel_size, n_layers=6):
+        super(GlobalCNNEncoder, self).__init__()
+        self.blocks = nn.ModuleList([
+            GlobalCNNBlock(input_dim, hidden_dim, kernel_size, dilation=2**i) 
+            for i in range(n_layers)
+        ])
+    def forward(self, x):
+        for block in self.blocks:
+            x = block(x)
+        return x
