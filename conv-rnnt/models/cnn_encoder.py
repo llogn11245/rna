@@ -113,7 +113,7 @@ class GlobalCNNEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim, kernel_size, n_layers=6):
         super(GlobalCNNEncoder, self).__init__()
         self.blocks = nn.ModuleList([
-            GlobalCNNBlock(input_dim, hidden_dim, kernel_size, dilation=2**i) 
+            GlobalCNNBlock(input_dim, hidden_dim, kernel_size, dilation= 2**i, n_dropout= 0.1) 
             for i in range(n_layers)
         ])
     def forward(self, x):
