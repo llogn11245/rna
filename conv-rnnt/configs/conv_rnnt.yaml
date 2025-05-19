@@ -12,8 +12,8 @@ model:
       stride: (1,1)
   global_cnn_encoder:
       n_layers: 6
-      kernel_size: (5,5)
-      stride: (1,1)
+      kernel_size: 5
+      stride: 1
       input_dim: 80
       hidden_dim: 512
       n_dropout: 0.2
