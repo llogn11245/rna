@@ -9,6 +9,8 @@ model:
   type: transducer
   cnn_encoder:
     local_cnn_encoder: 
+        kernel_size: 5
+        stride: 1
     global_cnn_encoder:
         n_layers: 6
         kernel_size_pw: 1
