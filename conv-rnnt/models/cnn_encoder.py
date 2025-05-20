@@ -133,13 +133,13 @@ class CNNEncoder(nn.Module):
     def forward(self, x):
         x = x.unsqueeze(1)
         local_out = self.local_cnn(x)  # [B, 64, T, F]
-        print(f"local_out.shape: {local_out.shape}")
+        # print(f"local_out.shape: {local_out.shape}")
         B, C, T, F = local_out.shape
         local_out_reshaped = local_out.permute(0, 2, 1, 3).reshape(B, T, C * F)  # [B, T, 64*F]
         global_out = self.global_cnn(local_out_reshaped)  # [B, T, 64*F]
-        print(f"global_out.shape: {global_out.shape}")
+        # print(f"global_out.shape: {global_out.shape}")
         concat = torch.cat([local_out_reshaped, global_out], dim=2)  # [B, T, 128*F]
-        print(f"concat.shape: {concat.shape}")
+        # print(f"concat.shape: {concat.shape}")
         return concat
     
 def build_cnn_encoder(config):

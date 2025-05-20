@@ -34,7 +34,7 @@ model:
       inner_size: 512
 
   vocab_size: 4866
-  feature_dim: 80
+  feature_dim: 10240
   dropout: 0.3
   name : 'conv-rnnt'
   share_weight: False
