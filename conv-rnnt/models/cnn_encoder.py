@@ -45,21 +45,21 @@ class SqueezeExcitation(nn.Module):
         return x * se  
 
 class GlobalCNNBlock(nn.Module):
-    def __init__(self, input_dim, hidden_dim, kernel_size, dilation, n_dropout=0.0):
+    def __init__(self, input_dim, hidden_dim, kernel_size_pw, kernel_size_dw, dilation, n_dropout=0.0):
         super(GlobalCNNBlock, self).__init__()
         # Point-wise CNN 1
-        self.pw_cnn1 = nn.Conv1d(input_dim, hidden_dim, kernel_size= kernel_size)
+        self.pw_cnn1 = nn.Conv1d(input_dim, hidden_dim, kernel_size= kernel_size_pw)
 
         # Dilated Depth-wise CNN
         self.dw_cnn = nn.Conv1d(hidden_dim, hidden_dim, 
-                                kernel_size= kernel_size, 
+                                kernel_size= kernel_size_dw, 
                                 dilation= dilation, 
                                 groups= hidden_dim, 
                                 padding= 0
                                 )
         
         # Point-wise CNN 2
-        self.pw_cnn2 = nn.Conv1d(hidden_dim, input_dim, kernel_size= kernel_size)
+        self.pw_cnn2 = nn.Conv1d(hidden_dim, input_dim, kernel_size= kernel_size_pw)
 
         # Squeeze-and-Excitation
         self.se = SqueezeExcitation(input_dim)
@@ -75,6 +75,9 @@ class GlobalCNNBlock(nn.Module):
         # Dropout
         self.dropout = nn.Dropout(n_dropout)
 
+        self.kernel_size_dw = kernel_size_dw
+        self.dilation = dilation
+
     def forward(self, x):
         # x: [B, T, D] -> Chuyển thành [B, D, T] cho Conv1d
         x = x.transpose(1, 2)  # [B, D, T]
@@ -86,7 +89,7 @@ class GlobalCNNBlock(nn.Module):
         x = self.bn1(x)
 
         # Dilated Depth-wise CNN (padding thủ công để giữ nguyên chiều dài)
-        pad = (self.kernel_size - 1) * self.dilation  # Padding bên trái để đảm bảo nhân quả
+        pad = (self.kernel_size_dw - 1) * self.dilation  # Padding bên trái để đảm bảo nhân quả
         x = F.pad(x, (pad, 0))  # Chỉ pad bên trái
         x = self.dw_cnn(x)
         x = self.relu(x)
@@ -96,7 +99,7 @@ class GlobalCNNBlock(nn.Module):
         x = self.pw_cnn2(x)
         x = self.bn3(x)
 
-        # Squeeze-and-Excitation
+        # Squeeze and Excitation
         x = self.se(x)
 
         # Dropout
@@ -110,19 +113,46 @@ class GlobalCNNBlock(nn.Module):
         return x
     
 class GlobalCNNEncoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim, kernel_size, n_layers=6):
+    def __init__(self, input_dim, hidden_dim, kernel_size_pw, kernel_size_dw, n_layers=6, n_dropout=0.0):
         super(GlobalCNNEncoder, self).__init__()
         self.blocks = nn.ModuleList([
-            GlobalCNNBlock(input_dim, hidden_dim, kernel_size, dilation= 2**i, n_dropout= 0.1) 
+            GlobalCNNBlock(input_dim, hidden_dim, kernel_size_pw, kernel_size_dw, dilation= 2**i, n_dropout= n_dropout) 
             for i in range(n_layers)
         ])
     def forward(self, x):
         for block in self.blocks:
             x = block(x)
         return x
+
+class CNNEncoder(nn.Module):
+    def __init__(self, local_cnn, global_cnn):
+        super(CNNEncoder, self).__init__()
+        self.local_cnn = local_cnn
+        self.global_cnn = global_cnn
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        local_out = self.local_cnn(x)  # [B, 64, T, F]
+        print(f"local_out.shape: {local_out.shape}")
+        B, C, T, F = local_out.shape
+        local_out_reshaped = local_out.permute(0, 2, 1, 3).reshape(B, T, C * F)  # [B, T, 64*F]
+        global_out = self.global_cnn(local_out_reshaped)  # [B, T, 64*F]
+        print(f"global_out.shape: {global_out.shape}")
+        concat = torch.cat([local_out_reshaped, global_out], dim=2)  # [B, T, 128*F]
+        print(f"concat.shape: {concat.shape}")
+        return concat
     
-# Ta cần sửa lại output của local cnn và đưa vào input của global cnn, sau đó sẽ concat 2 block lại với nhau
 def build_cnn_encoder(config):
-    local_cnn = LocalCNNEncoder()
-    global_cnn = GlobalCNNEncoder()
-    return x
+    local_cnn = LocalCNNEncoder(
+        # kernel_size= config["local_cnn_encoder"]["kernel_size"],
+        # stride= config["local_cnn_encoder"]["stride"]
+    )
+    global_cnn = GlobalCNNEncoder(
+        input_dim= config["global_cnn_encoder"]["input_dim"], 
+        hidden_dim= config["global_cnn_encoder"]["hidden_dim"],
+        kernel_size_pw= config["global_cnn_encoder"]["kernel_size_pw"],
+        kernel_size_dw= config["global_cnn_encoder"]["kernel_size_dw"],
+        n_layers= config["global_cnn_encoder"]["n_layers"],
+        n_dropout= config["global_cnn_encoder"]["n_dropout"]
+    )
+    return CNNEncoder(local_cnn, global_cnn)

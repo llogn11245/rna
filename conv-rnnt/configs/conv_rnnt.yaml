@@ -7,16 +7,16 @@ audio_data:
 
 model:
   type: transducer
-  local_cnn_encoder: 
-      kernel_size: (5,5)
-      stride: (1,1)
-  global_cnn_encoder:
-      n_layers: 6
-      kernel_size: 5
-      stride: 1
-      input_dim: 80
-      hidden_dim: 512
-      n_dropout: 0.2
+  cnn_encoder:
+    local_cnn_encoder: 
+    global_cnn_encoder:
+        n_layers: 6
+        kernel_size_pw: 1
+        kernel_size_dw: 3
+        stride: 1
+        input_dim: 5120   # 64*80
+        hidden_dim: 512
+        n_dropout: 0.1
   enc:
       type: lstm
       hidden_size: 320
@@ -42,7 +42,7 @@ model:
 
 training:
   epochs: 100
-  batch_size: 1
+  batch_size: 2
   save_path: C:\\Users\\longg\\Downloads\\speech2text-main\\rna
   train_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\train_w2i.json"
   dev_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\test_w2i.json"
