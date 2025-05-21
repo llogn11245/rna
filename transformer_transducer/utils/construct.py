@@ -64,10 +64,10 @@ save_data(vocab, r"/kaggle/working/vocab_w2i.json")
 process_data(r"/kaggle/input/vivos-dataset/train.json",
              vocab,
              r"/kaggle/input/vivos-dataset/voices",
-             r"/kaggle/input/vivos-dataset/train_w2i.json")
+             r"/kaggle/working/train_w2i.json")
 
 process_data(r"/kaggle/input/vivos-dataset/test.json",
              vocab,
              r"/kaggle/input/vivos-dataset/voices",
-             r"/kaggle/input/vivos-dataset/test_w2i.json")
+             r"/kaggle/working/test_w2i.json")
 
