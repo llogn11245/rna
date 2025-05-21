@@ -38,7 +38,7 @@ setup(
     ext_modules=[
         CUDAExtension(
             name="warp_rna._C",
-            sources=["binding.cpp", "core.cu"],
+            sources=["./binding.cpp", "./core.cu"],
             include_dirs=[
                 os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
             ] + torch.utils.cpp_extension.include_paths()
