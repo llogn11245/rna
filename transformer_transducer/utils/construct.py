@@ -58,16 +58,16 @@ def process_data(data_path, vocab, default_data_path, save_path):
     print(f"Data saved to {save_path}")
 
 
-vocab = create_vocab(r"C:\paper\raw_data\Vietnamese-Speech-to-Text-datasets\ViVOS\train.json")
-save_data(vocab, r"C:\paper\raw_data\Vietnamese-Speech-to-Text-datasets\ViVOS\vocab_w2i.json")
+vocab = create_vocab(r"/kaggle/input/vivos-dataset/train.json")
+save_data(vocab, r"/kaggle/working/vocab_w2i.json")
 
-process_data(r"C:\paper\raw_data\Vietnamese-Speech-to-Text-datasets\ViVOS\train.json",
+process_data(r"/kaggle/input/vivos-dataset/train.json",
              vocab,
-             r"C:\paper\raw_data\Vietnamese-Speech-to-Text-datasets\ViVOS\voices",
-             r"C:\paper\raw_data\Vietnamese-Speech-to-Text-datasets\ViVOS\train_w2i.json")
+             r"/kaggle/input/vivos-dataset/voices",
+             r"/kaggle/input/vivos-dataset/train_w2i.json")
 
-process_data(r"C:\paper\raw_data\Vietnamese-Speech-to-Text-datasets\ViVOS\test.json",
+process_data(r"/kaggle/input/vivos-dataset/test.json",
              vocab,
-             r"C:\paper\raw_data\Vietnamese-Speech-to-Text-datasets\ViVOS\voices",
-             r"C:\paper\raw_data\Vietnamese-Speech-to-Text-datasets\ViVOS\test_w2i.json")
+             r"/kaggle/input/vivos-dataset/voices",
+             r"/kaggle/input/vivos-dataset/test_w2i.json")
 
