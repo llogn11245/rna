@@ -38,7 +38,7 @@ setup(
     ext_modules=[
         CUDAExtension(
             name="warp_rna._C",
-            sources=["./binding.cpp", "./core.cu"],
+            sources=["/kaggle/working/rna/rna_loss/pytorch_binding/binding.cpp", "/kaggle/working/rna/rna_loss/pytorch_binding/core.cu"],
             include_dirs=[
                 os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
             ] + torch.utils.cpp_extension.include_paths()
