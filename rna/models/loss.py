@@ -15,7 +15,14 @@ class RNALoss(torch.nn.Module):
             fbank_len: [B]
             text_len: [B]
         """
-        loss = rna_loss(logits, targets[:, :].int(), fbank_len.int(), text_len.int(), blank=self.blank)
+        logits = logits.log_softmax(dim=-1)
+        
+        loss = rna_loss(log_probs= logits, 
+                        labels= targets[:, :].int(), 
+                        frames_lengths= fbank_len.int(), 
+                        labels_lengths= text_len.int(), 
+                        blank=self.blank
+                        )
 
         if self.reduction == "mean":
             return loss.mean()
