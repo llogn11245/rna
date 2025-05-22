@@ -1,11 +1,11 @@
 training:
   epochs: 100
   batch_size: 1
-  save_path: "save_folder/"
-  train_path : "data/train.json"
-  dev_path : "data/test.json"
-  test_path : "data/test.json"
-  vocab_path : "data/vocab.json"
+  save_path: "C:\\HK6\\speech2text-main\\transformer_transducer\\save_folder"
+  train_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\train_w2i.json"
+  dev_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\test_w2i.json"
+  test_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\test_w2i.json"
+  vocab_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\vocab_w2i.json"
   reload: False
   
 
