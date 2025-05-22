@@ -18,7 +18,7 @@ class RNNTLoss(torch.nn.Module):
         # print(fbank_len.shape)
         # print(text_len.shape)
 
-        loss = rnnt_loss(logits, targets[:, 1:].int(), fbank_len.int(), text_len.int() - 1, blank=self.blank)
+        loss = rnnt_loss(logits, targets[:, :].int(), fbank_len.int(), text_len.int() - 1, blank=self.blank)
         
         if self.reduction == "mean":
             return loss.mean()
