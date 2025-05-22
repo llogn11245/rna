@@ -10,7 +10,18 @@ from inferences import TransducerPredictor
 from models.optim import Optimizer
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import datetime
+import logging
 
+# Cấu hình logger
+log_file = "transformer_transducer_log.txt"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()  # vẫn in ra màn hình
+    ]
+)
 
 def reload_model(model, optimizer, checkpoint_path):
     """
@@ -67,7 +78,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
         progress_bar.set_postfix(batch_loss=loss.item())
 
     avg_loss = total_loss / len(dataloader)
-    print(f"✅ Average training loss: {avg_loss:.4f}")
+    logging.info(f"✅ Average training loss: {avg_loss:.4f}")
     return avg_loss
 
 
@@ -105,7 +116,7 @@ def evaluate(model, dataloader, criterion, device):
             progress_bar.set_postfix(batch_loss=loss.item())
 
     avg_loss = total_loss / len(dataloader)
-    print(f"✅ Average validation loss: {avg_loss:.4f}")
+    logging.info(f"✅ Average validation loss: {avg_loss:.4f}")
     return avg_loss
 
 def load_config(config_path):
@@ -199,7 +210,7 @@ def main():
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_loss = evaluate(model,  dev_loader, criterion, device)
 
-        print(f"📘 [{datetime.datetime.now()}] Epoch {epoch}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}")
+        logging.info(f"📘 [{datetime.datetime.now()}] Epoch {epoch}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}")
         # Save model checkpoint
 
         model_filename = os.path.join(
@@ -219,7 +230,7 @@ def main():
         # Early stopping nếu lr quá nhỏ
         current_lr = optimizer.optimizer.param_groups[0]["lr"]
         if current_lr < 1e-6:
-            print('⚠️ Learning rate quá thấp. Kết thúc training.')
+            logging.info('⚠️ Learning rate quá thấp. Kết thúc training.')
             break
 
 
