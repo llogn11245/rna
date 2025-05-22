@@ -63,10 +63,6 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
         loss.backward()
         optimizer.step()
 
-        print(f"Loss: {loss.item()}")
-        print(f"Output shape: {output.shape}")
-        print(f"Sample output values: {output[0, :3, :3]}")  # Print first few values
-        exit(0)
         total_loss += loss.item()
         progress_bar.set_postfix(batch_loss=loss.item())
 
