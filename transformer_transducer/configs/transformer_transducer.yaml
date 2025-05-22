@@ -1,11 +1,11 @@
 training:
-  epochs: 20
+  epochs: 100
   batch_size: 1
-  save_path: "/kaggle/working/save_folder"
-  train_path : "/kaggle/working/train.json"
-  dev_path : "/kaggle/working/test.json"
-  test_path : "/kaggle/working/test.json"
-  vocab_path : "/kaggle/working/vocab.json"
+  save_path: "save_folder/"
+  train_path : "data/train.json"
+  dev_path : "data/test.json"
+  test_path : "data/test.json"
+  vocab_path : "data/vocab.json"
   reload: False
   
 
@@ -26,16 +26,16 @@ optim:
 
 model:
   in_features: 80
-  n_layers: 18
+  n_layers: 4
   n_dec_layers: 2
-  d_model: 512
-  ff_size: 2048
-  h: 8
+  d_model: 256
+  ff_size: 1024
+  h: 4
   joint_size: 512
-  enc_left_size: 20
-  enc_right_size: 20
-  dec_left_size: 20
-  dec_right_size: 0
+  enc_left_size: 512
+  enc_right_size: 512
+  dec_left_size: 512
+  dec_right_size: 512
   p_dropout: 0.1
   model_name: "transformer_transducer"
 
