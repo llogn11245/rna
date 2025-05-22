@@ -8,7 +8,18 @@ import yaml
 import os 
 from models.optim import Optimizer
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import logging
 
+# Cấu hình logger
+log_file = "transformer_transducer_log.txt"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()  # vẫn in ra màn hình
+    ]
+)
 
 def reload_model(model, optimizer, checkpoint_path, model_name):
     past_epoch = 0
