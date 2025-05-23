@@ -169,7 +169,7 @@ def main():
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_loss = evaluate(model, dev_loader, criterion, device)
 
-        print(f"Epoch {epoch}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}")
+        logging.info(f"Epoch {epoch}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}")
 
         # Save model checkpoint
         model_filename = os.path.join(
