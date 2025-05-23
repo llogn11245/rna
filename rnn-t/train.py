@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import logging
 
 # Cấu hình logger
-log_file = "transformer_transducer_log.txt"
+log_file = "rnnt_log.txt"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(message)s",
