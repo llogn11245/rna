@@ -1,6 +1,3 @@
-
-  
-
 audio_data:
   type: "log"
   sampling_rate: 16000
