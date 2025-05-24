@@ -8,23 +8,24 @@ audio_data:
 model:
   type: transducer
   cnn_encoder:
-    local_cnn_encoder: 
+    local_  cnn_encoder: 
         kernel_size: 5
         stride: 1
     global_cnn_encoder:
-        n_layers: 6
+        n_layers: 1
         kernel_size_pw: 1
         kernel_size_dw: 3
         stride: 1
-        input_dim: 5120   # 64*80
-        hidden_dim: 512
+        input_dim: 12288   # 64*80
+        hidden_dim: 24576
         n_dropout: 0.1
+    feature_dim: 640
   enc:
       type: lstm
       hidden_size: 320
       output_size: 320
       n_layers: 4
-      bidirectional: True
+      bidirectional: False
   dec:
       type: lstm
       embedding_size: 512
@@ -36,7 +37,7 @@ model:
       inner_size: 512
 
   vocab_size: 4866
-  feature_dim: 10240
+  feature_dim: 640
   dropout: 0.3
   name : 'conv-rnnt'
   share_weight: False
@@ -44,23 +45,21 @@ model:
 
 training:
   epochs: 100
-  batch_size: 2
-  save_path: C:\\Users\\longg\\Downloads\\speech2text-main\\rna
-  train_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\train_w2i.json"
-  dev_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\test_w2i.json"
-  test_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\test_w2i.json"
-  vocab_path : "C:\\paper\\raw_data\\Vietnamese-Speech-to-Text-datasets\\ViVOS\\vocab_w2i.json"
+  batch_size: 1
+  save_path: "/data/npl/Speech2Text/conv-rnnt/save_folder"
+  train_path : "/data/npl/Speech2Text/conv-rnnt/data/train_w2i.json"
+  dev_path : "/data/npl/Speech2Text/conv-rnnt/data/test_w2i.json"
+  test_path : "/data/npl/Speech2Text/conv-rnnt/data/test_w2i.json"
+  vocab_path : "/data/npl/Speech2Text/conv-rnnt/data/vocab_w2i.json"
   reload: False
 
 
 optim:
-  type: sgd
-  lr: 0.0001
-  momentum: 0.9
-  weight_decay: 0
-  begin_to_adjust_lr: 60
-  nesterov: None
-  decay_rate: 0.5
+  type: adam
+  lr: 0.002
+  weight_decay: 0.0001
+  decay_rate: 0.01
+
 
 
 rnnt_loss:
