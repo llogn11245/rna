@@ -56,35 +56,40 @@ class Speech2Text(Dataset):
         return len(self.data)
     
     def get_fbank(self, waveform, sample_rate=16000):
-        mel_extractor = T.MelSpectrogram(
-            sample_rate=sample_rate,
+        # 1. Lấy STFT (not Mel)
+        stft = torch.stft(
+            input=waveform,
             n_fft=512,
-            win_length=int(0.032 * sample_rate),
-            hop_length=int(0.010 * sample_rate),
-            n_mels=80,  # ✨ để đúng với Conv1d(in_channels=80)
-            power=2.0
+            hop_length=int(0.010 * sample_rate),  # 10ms
+            win_length=int(0.025 * sample_rate),  # 25ms
+            window=torch.hamming_window(int(0.025 * sample_rate)),
+            return_complex=True
         )
 
-        log_mel = mel_extractor(waveform.unsqueeze(0))
-        log_mel = torchaudio.functional.amplitude_to_DB(log_mel, multiplier=10.0, amin=1e-10, db_multiplier=0)
-        log_mel = log_mel.squeeze(0)
+        # 2. Lấy magnitude và chỉ giữ 64 tần số đầu tiên (low frequency)
+        mag = stft.abs()[:64, :]  # [F=64, T]
 
-        # return log_mel.squeeze(0).transpose(0, 1)  # [T, 80]
-        
-        # mean = log_mel.mean(dim=1, keepdim=True)
-        # std = log_mel.std(dim=1, keepdim=True)
-        # normalized_log_mel_spec = (log_mel - mean) / (std + 1e-5)
+        # 3. Convert to log scale (avoid log(0))
+        log_spec = torch.log10(mag + 1e-10)  # [64, T]
 
-        # spec = self.freq_mask(normalized_log_mel_spec)
-        # spec = self.time_mask(spec)
+        # 4. Transpose về [T, 64]
+        log_spec = log_spec.transpose(0, 1)  # [T, 64]
 
-        # return spec.transpose(0, 1)  # [T, 80]
-    
-        mean = log_mel.mean(dim=1, keepdim=True)
-        std = log_mel.std(dim=1, keepdim=True)
-        normalized_log_mel_spec = (log_mel - mean) / (std + 1e-5)
+        # 5. Stack 3 frames with skip=3
+        # e.g., frame t = [t, t+3, t+6] → dim = 64*3 = 192
+        T = log_spec.shape[0]
+        stacked = []
+        for i in range(0, T - 6, 1):
+            stacked.append(torch.cat([log_spec[i], log_spec[i+3], log_spec[i+6]], dim=-1))  # [192]
+        stacked = torch.stack(stacked)  # [T', 192]
 
-        return normalized_log_mel_spec.transpose(0, 1)  # [T, 80]
+        # 6. Global mean and std normalization
+        mean = stacked.mean(dim=0, keepdim=True)
+        std = stacked.std(dim=0, keepdim=True)
+        stacked = (stacked - mean) / (std + 1e-5)  # [T', 192]
+
+        return stacked  # [T', 192]
+
     
     def extract_from_path(self, wave_path):
         waveform, sr = torchaudio.load(wave_path)
