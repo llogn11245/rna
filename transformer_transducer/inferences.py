@@ -20,10 +20,11 @@ def load_config(config_path: str) -> dict:
         return yaml.safe_load(f)
 
 def load_model(config: dict, vocab_len: int, device: torch.device) -> TransformerTransducer:
-    checkpoint_path = os.path.join(
-        config['training']['save_path'],
-        f"transformer_transducer_epoch_19"
-    )
+    # checkpoint_path = os.path.join(
+    #     config['training']['save_path'],
+    #     f"transformer_transducer_epoch_19"
+    # )
+    checkpoint_path = r"C:\HK6\speech2text-main\transformer_transducer\save_folder\transformer_transducer_epoch_10"
     print(f"Loading checkpoint from: {checkpoint_path}")
     model = TransformerTransducer(
         in_features=config['model']['in_features'],
@@ -134,8 +135,8 @@ def main():
         idx2token = {idx: token for token, idx in vocab.items()}
         ref_tokens = [idx2token.get(token, "") for token in ref_ids]
         ref_transcription = " ".join(ref_tokens)
-        print("🔊", pred_transcription)
-        print("🎯", ref_transcription)
+        print("pred: ", pred_transcription)
+        print("ground truth", ref_transcription)
         all_references.append(ref_transcription)
 
     wer_score = wer(all_references, all_predictions)
