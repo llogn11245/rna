@@ -179,4 +179,7 @@ class TransformerTransducer(nn.Module):
             speech_len.to(speech.device),
             text_len.to(speech.device),
         )
+        # print(f"encoder_out.shape = {speech.shape}")
+        # print(f"decoder_out.shape = {text.shape}")
+        # print(f"result.shape = {result.shape}")
         return result, speech_len, text_len

@@ -24,7 +24,7 @@ def load_model(config: dict, vocab_len: int, device: torch.device) -> Transforme
     #     config['training']['save_path'],
     #     f"transformer_transducer_epoch_19"
     # )
-    checkpoint_path = r"C:\HK6\speech2text-main\transformer_transducer\save_folder\transformer_transducer_epoch_10"
+    checkpoint_path = r"C:\HK6\speech2text-main\transformer_transducer\save_folder\transformer_transducer_epoch_9"
     print(f"Loading checkpoint from: {checkpoint_path}")
     model = TransformerTransducer(
         in_features=config['model']['in_features'],
@@ -78,12 +78,21 @@ class TransducerPredictor:
             decoder_output, _ = self.model.decoder(targets, text_mask)               # (B, U, D)
             dec_proj = self.model.text_fc(decoder_output[:, -1:, :])            # (B, 1, D)
             enc_step = enc_proj[:, t+1:t+2, :]                                     # (B, 1, D)
-
+            print(f"enc_step: {enc_step.shape}")
+            print(f"enc_step: {enc_step[:,:,:5]}")
+            print(f"dec_proj: {dec_proj.shape}")
+            print(f"dec_proj: {dec_proj[:,:,:5]}")
             logits = self.model._join(enc_step, dec_proj)                       # (B, 1, 1, V)
             logits = F.log_softmax(logits.squeeze(1).squeeze(1), dim=-1)       # (B, V)
+            print(f"logits: {logits.shape}")
+            print(f"logits: {logits[:,:5]}")
             top_token = logits.argmax(dim=-1)                                   # (B,)
             token_id = top_token.item()
-
+            print(f"token_id: {token_id}")
+            print(f"top 5 token: {logits.topk(5, dim=-1).indices.squeeze(0)}")
+            print(f"top 5 token logits: {logits.topk(5, dim=-1)}")
+            topk_tokens = [self.idx2token.get(idx.item(), "<unknown>") for idx in logits.topk(5, dim=-1).indices.squeeze(0)]
+            print(f"Top 5 tokens: {topk_tokens}")
             if token_id == self.eos or token_id == self.blank:
                 break
             
@@ -137,6 +146,7 @@ def main():
         ref_transcription = " ".join(ref_tokens)
         print("pred: ", pred_transcription)
         print("ground truth", ref_transcription)
+        print("=================================")
         all_references.append(ref_transcription)
 
     wer_score = wer(all_references, all_predictions)
