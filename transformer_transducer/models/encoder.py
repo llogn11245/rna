@@ -367,23 +367,23 @@ class TransformerTransducerEncoder(nn.Module):
         )
         self.enc_layers = nn.ModuleList(
             [
-                # TransformerTransducerLayer(
-                #     d_model=d_model,
-                #     ff_size=ff_size,
-                #     h=h,
-                #     left_size=left_size,
-                #     right_size=right_size,
-                #     p_dropout=p_dropout,
-                #     masking_value=masking_value,
-                # )
-                TransformerEncLayer(
+                TransformerTransducerLayer(
                     d_model=d_model,
                     ff_size=ff_size,
                     h=h,
+                    left_size=left_size,
+                    right_size=right_size,
                     p_dropout=p_dropout,
                     masking_value=masking_value,
                 )
-                for _ in range(n_layers)
+                # TransformerEncLayer(
+                #     d_model=d_model,
+                #     ff_size=ff_size,
+                #     h=h,
+                #     p_dropout=p_dropout,
+                #     masking_value=masking_value,
+                # )
+                # for _ in range(n_layers)
             ]
         )
 

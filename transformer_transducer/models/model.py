@@ -135,31 +135,32 @@ class TransformerTransducer(nn.Module):
             the speech and text length of shape [B]
         """
         B, U = text.shape
-        ## Nếu muốn pad 0 vào cuối 
-        # pad_col = torch.full((B, 1),
-        #                      fill_value=0,
-        #                      dtype=text.dtype,
-        #                      device=text.device)
-        # text_padded = torch.cat([text, pad_col], dim=1)
-        # pad_mask = torch.zeros((B, 1),
-        #                        dtype=text_mask.dtype,
-        #                        device=text_mask.device)
-        # mask_padded = torch.cat([text_mask, pad_mask], dim=1)
+        
+        # Nếu muốn pad 0 vào cuối 
+        pad_col = torch.full((B, 1),
+                             fill_value=0,
+                             dtype=text.dtype,
+                             device=text.device)
+        text_padded = torch.cat([text, pad_col], dim=1)
+        pad_mask = torch.zeros((B, 1),
+                               dtype=text_mask.dtype,
+                               device=text_mask.device)
+        mask_padded = torch.cat([text_mask, pad_mask], dim=1)
 
         # print(f"text_padded.shape = {text_padded.shape}")
         # print(f"text_padded = {text_padded}")
         # print(f"mask_padded = {mask_padded}")
 
         # Nếu muốn pad eos vào cuối
-        pad_col = torch.full((B, 1),
-                             fill_value=2,
-                             dtype=text.dtype,
-                             device=text.device)
-        text_padded = torch.cat([text, pad_col], dim=1)
-        pad_mask = torch.ones((B, 1),
-                               dtype=text_mask.dtype,
-                               device=text_mask.device)
-        mask_padded = torch.cat([text_mask, pad_mask], dim=1)
+        # pad_col = torch.full((B, 1),
+        #                      fill_value=2,
+        #                      dtype=text.dtype,
+        #                      device=text.device)
+        # text_padded = torch.cat([text, pad_col], dim=1)
+        # pad_mask = torch.ones((B, 1),
+        #                        dtype=text_mask.dtype,
+        #                        device=text_mask.device)
+        # mask_padded = torch.cat([text_mask, pad_mask], dim=1)
 
         # print(f"text_padded.shape = {text_padded.shape}")
         # print(f"text_padded = {text_padded}")
