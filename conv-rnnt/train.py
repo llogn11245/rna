@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import logging
 
 # Cấu hình logger
-log_file = "/data/npl/Speech2Text/rna/conv-rnnt/log_train_slurm/conv_rnnt_log_0706.txt"
+log_file = "workspace/rna/conv-rnnt/conv_rnnt_log.txt"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(message)s",
