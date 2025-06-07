@@ -58,16 +58,16 @@ def process_data(data_path, vocab, default_data_path, save_path):
     print(f"Data saved to {save_path}")
 
 
-vocab = create_vocab(r"/data/npl/Speech2Text/conv-rnnt/data/train.json")
-save_data(vocab, r"/data/npl/Speech2Text/conv-rnnt/data/vocab_w2i.json")
+vocab = create_vocab(r"workspace/rna/conv-rnnt/data/train.json")
+save_data(vocab, r"workspace/rna/conv-rnnt/data/vocab_w2i.json")
 
-process_data(r"/data/npl/Speech2Text/conv-rnnt/data/train.json",
+process_data(r"workspace/rna/conv-rnnt/data/train.json",
              vocab,
-             r"/data/npl/Speech2Text/conv-rnnt/data/voices",
-             r"/data/npl/Speech2Text/conv-rnnt/data/train_w2i.json")
+             r"workspace/rna/conv-rnnt/data/voices",
+             r"workspace/rna/conv-rnnt/data/train_w2i.json")
 
-process_data(r"/data/npl/Speech2Text/conv-rnnt/data/test.json",
+process_data(r"workspace/rna/conv-rnnt/data/test.json",
              vocab,
-             r"/data/npl/Speech2Text/conv-rnnt/data/voices",
-             r"/data/npl/Speech2Text/conv-rnnt/data/test_w2i.json")
+             r"workspace/rna/conv-rnnt/data/voices",
+             r"workspace/rna/conv-rnnt/data/test_w2i.json")
 
