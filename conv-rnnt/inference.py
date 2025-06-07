@@ -49,7 +49,7 @@ def main():
     model.eval()
 
     #===Load Data===
-    dataset = Speech2Text(args.test_json, args.vocab_json)
+    dataset = Speech2Text(args.test_json, args.vocab_json, args.cmvn_stats)
     itos    = dataset.vocab.itos
     eos_id  = dataset.vocab.get_eos_token()
 
@@ -64,7 +64,7 @@ def main():
     with open(args.output, 'w', encoding='utf-8') as fout:
         for batch in loader:
             fbanks     = batch['fbank'].to(device)
-            fbank_lens = batch['fbank_len']
+            fbank_lens = batch['fbank_len'].to(device)
 
             with torch.no_grad():
                 batch_preds = model.recognize(fbanks, fbank_lens)
@@ -78,7 +78,8 @@ def main():
 
                 pred_texts.append(pred_text)
                 true_texts.append(true_text)
-
+                print(f"Predict text: {pred_text}")
+                print(f"Ground truth: {true_text}")
                 fout.write(f"Predict text: {pred_text}\n")
                 fout.write(f"Ground truth: {true_text}\n")
                 fout.write("---------------\n")
@@ -93,3 +94,12 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# python /data/npl/Speech2Text/rna/conv-rnnt/inference.py \
+#     --config /data/npl/Speech2Text/rna/conv-rnnt/configs/conv_rnnt.yaml \
+#     --checkpoint /data/npl/Speech2Text/rna/conv-rnnt/0506_rnnt_datset_class_2/conv-rnnt_epoch_4 \
+#     --test_json /data/npl/Speech2Text/rna/transformer_transducer/data/test_w2i.json \
+#     --vocab_json /data/npl/Speech2Text/rna/transformer_transducer/data/vocab_w2i.json \
+#     --cmvn_stats /data/npl/Speech2Text/rna/zlinhtinh/cmvn_stats.pt \
+#     --batch_size 1 \
+#     --output /data/npl/Speech2Text/rna/conv-rnnt/predictions.txt 

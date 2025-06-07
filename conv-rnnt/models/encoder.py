@@ -24,6 +24,7 @@ class BaseEncoder(nn.Module):
     def forward(self, inputs, input_lengths):
         assert inputs.dim() == 3  # [B, T, F]
 
+        # print("inputs", inputs.shape)
         B, T, F = inputs.shape
         # inputs = self.input_bn(inputs.view(-1, F)).view(B, T, F)
 
@@ -40,6 +41,8 @@ class BaseEncoder(nn.Module):
             packed_inputs = inputs
 
         self.lstm.flatten_parameters()
+
+        # print("packed_inputs", packed_inputs.data.shape)
 
         outputs, hidden = self.lstm(packed_inputs)
 

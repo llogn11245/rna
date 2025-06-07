@@ -25,6 +25,7 @@ def debug_batch(model, batch, criterion, device, is_training=True):
     decoder_input = batch["decoder_input"].to(device)
 
     # Print shapes
+    print(f"================INPUT================")
     print(f"Speech shape: {speech.shape}")
     print(f"Speech mask shape: {speech_mask.shape}")
     print(f"Text mask shape: {text_mask.shape}")
@@ -32,7 +33,7 @@ def debug_batch(model, batch, criterion, device, is_training=True):
     print(f"Text len shape: {text_len.shape}")
     print(f"Target text shape: {target_text.shape}")
     print(f"Decoder input shape: {decoder_input.shape}")
-
+    print(f"================MODEL================")
     # Set model mode
     if is_training:
         model.train()
@@ -73,11 +74,12 @@ def main():
     train_dataset = Speech2Text(
         json_path=training_cfg['train_path'],
         vocab_path=training_cfg['vocab_path'],
+        cmvn_stats=training_cfg['cmvn_stats'],
     )
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=training_cfg['batch_size'],
-        shuffle=True,
+        shuffle=False,
         collate_fn=speech_collate_fn
     )
 

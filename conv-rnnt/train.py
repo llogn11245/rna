@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import logging
 
 # Cấu hình logger
-log_file = "transformer_transducer_log.txt"
+log_file = "/data/npl/Speech2Text/rna/conv-rnnt/log_train_slurm/conv_rnnt_log_0706.txt"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(message)s",
@@ -36,8 +36,9 @@ def reload_model(model, optimizer, checkpoint_path, model_name):
         checkpoint = torch.load(load_path)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        logging.info(f"Reloaded model from {load_path} at epoch {past_epoch}")
     else:
-        print("No checkpoint found. Starting from scratch.")
+        logging.info("No checkpoint found. Starting from scratch.")
     
     return past_epoch + 1, model, optimizer
 
@@ -67,7 +68,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
         progress_bar.set_postfix(batch_loss=loss.item())
 
     avg_loss = total_loss / len(dataloader)
-    print(f"✅ Average training loss: {avg_loss:.4f}")
+    logging.info(f"Average training loss: {avg_loss:.4f}")
     return avg_loss
 
 
@@ -94,7 +95,7 @@ def evaluate(model, dataloader, criterion, device):
             progress_bar.set_postfix(batch_loss=loss.item())
 
     avg_loss = total_loss / len(dataloader)
-    print(f"✅ Average validation loss: {avg_loss:.4f}")
+    logging.info(f"Average validation loss: {avg_loss:.4f}")
     return avg_loss
 
 
@@ -115,6 +116,7 @@ def main():
     train_dataset = Speech2Text(
         json_path=training_cfg['train_path'],
         vocab_path=training_cfg['vocab_path'],
+        cmvn_stats=training_cfg['cmvn_stats'],
     )
 
     train_loader = torch.utils.data.DataLoader(
@@ -126,7 +128,8 @@ def main():
 
     dev_dataset = Speech2Text(
         json_path=training_cfg['dev_path'],
-        vocab_path=training_cfg['vocab_path']
+        vocab_path=training_cfg['vocab_path'],
+        cmvn_stats=training_cfg['cmvn_stats'],
     )
 
     dev_loader = torch.utils.data.DataLoader(
@@ -169,7 +172,7 @@ def main():
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_loss = evaluate(model, dev_loader, criterion, device)
 
-        print(f"📘 Epoch {epoch}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}")
+        logging.info(f"Epoch {epoch}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}")
 
         # Save model checkpoint
         model_filename = os.path.join(
@@ -189,7 +192,7 @@ def main():
         # Early stopping nếu lr quá nhỏ
         current_lr = optimizer.optimizer.param_groups[0]["lr"]
         if current_lr < 1e-6:
-            print('⚠️ Learning rate quá thấp. Kết thúc training.')
+            logging.info('Learning rate quá thấp. Kết thúc training.')
             break
 
 

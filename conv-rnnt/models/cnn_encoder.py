@@ -3,21 +3,36 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LocalCNNEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, kernel_size=5, stride=1, feature_dim= 192, dim_out= 2048):
         super().__init__()
         self.relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(1, 100, kernel_size=5, stride=1, padding=(4, 2))  # causal pad time
-        self.conv2 = nn.Conv2d(100, 100, kernel_size=5, stride=1, padding=(4, 2))
-        self.conv3 = nn.Conv2d(100, 64, kernel_size=5, stride=1, padding=(4, 2))
-        self.conv4 = nn.Conv2d(64, 64, kernel_size=5, stride=1, padding=(4, 2))
+        self.conv1 = nn.Conv2d(1, 100, kernel_size= kernel_size, stride= stride, padding=0)  # causal pad time
+        self.conv2 = nn.Conv2d(100, 100, kernel_size= kernel_size, stride= stride, padding=0)
+        self.conv3 = nn.Conv2d(100, 64, kernel_size= kernel_size, stride= stride, padding=0)
+        self.conv4 = nn.Conv2d(64, 64, kernel_size= kernel_size, stride= stride, padding=0)
+
+        self.bn1 = nn.BatchNorm2d(100)
+        self.bn2 = nn.BatchNorm2d(100)
+        self.bn3 = nn.BatchNorm2d(64)
+        self.bn4 = nn.BatchNorm2d(64)
+        
+        self.fc = nn.Sequential(
+            nn.Linear(64 * feature_dim, dim_out)
+        )
 
     def forward(self, x):  # x: [B, 1, T, F]
+        x = torch.nn.functional.pad(x, (2, 2, 4, 0))  # (left, right, top, bottom)
         x = self.relu(self.conv1(x))
+        x = torch.nn.functional.pad(x, (2, 2, 4, 0))
         x = self.relu(self.conv2(x))
+        x = torch.nn.functional.pad(x, (2, 2, 4, 0))
         x = self.relu(self.conv3(x))
+        x = torch.nn.functional.pad(x, (2, 2, 4, 0))
         x = self.relu(self.conv4(x))
-        return x  # [B, 64, T, F]
-
+        B, C, T, F = x.shape
+        x = x.permute(0, 2, 1, 3).reshape(B, T, C * F)  # [B, T, 64*F]
+        x = self.fc(x)  # [B, T, dim_out]
+        return x  # [B, T, dim_out]
 
 class SqueezeExcitation(nn.Module):
     def __init__(self, channels, reduction=16):
@@ -40,19 +55,19 @@ class GlobalCNNBlock(nn.Module):
     def __init__(self, input_dim, hidden_dim, kernel_size_pw, kernel_size_dw, dilation, n_dropout=0.0):
         super(GlobalCNNBlock, self).__init__()
         # Point-wise CNN 1
-        self.pw_cnn1 = nn.Conv1d(input_dim, 2 * input_dim, kernel_size=kernel_size_pw)
+        self.pw_cnn1 = nn.Conv1d(input_dim, hidden_dim, kernel_size=kernel_size_pw)
 
         # Dilated Depth-wise CNN
         self.dw_cnn = nn.Conv1d(
-            2 * input_dim, 2 * input_dim,
+            hidden_dim, hidden_dim,
             kernel_size=kernel_size_dw,
             dilation=dilation,
-            groups=2 * input_dim,
+            groups= hidden_dim,
             padding= dilation * (kernel_size_dw - 1) // 2  # this auto keeps T
         )
 
         # Point-wise CNN 2
-        self.pw_cnn2 = nn.Conv1d(2 * input_dim, input_dim, kernel_size=kernel_size_pw)
+        self.pw_cnn2 = nn.Conv1d(hidden_dim, input_dim, kernel_size=kernel_size_pw)
 
         # Squeeze-and-Excitation
         self.se = SqueezeExcitation(input_dim)
@@ -135,20 +150,20 @@ class CNNEncoder(nn.Module):
         x = x.unsqueeze(1)
         local_out = self.local_cnn(x)  # [B, 64, T, F]
         # print(f"local_out.shape: {local_out.shape}")
-        B, C, T, F = local_out.shape
-        local_out_reshaped = local_out.permute(0, 2, 1, 3).reshape(B, T, C * F)  # [B, T, 64*F]
-        global_out = self.global_cnn(local_out_reshaped)  # [B, T, 64*F]
+        global_out = self.global_cnn(local_out)  # [B, T, 64*F]
         # print(f"global_out.shape: {global_out.shape}")
-        concat = torch.cat([local_out_reshaped, global_out], dim=2)  # [B, T, 128*F]
+        concat = torch.cat([local_out, global_out], dim=2)  # [B, T, 128*F]
         # print(f"concat.shape: {concat.shape}")
         
-        output = self.projected(concat)  # [B, T, 128*F] -> [B, T, d_input]
-        return output
+        # output = self.projected(concat)  # [B, T, 128*F] -> [B, T, d_input]
+        return concat
     
 def build_cnn_encoder(config):
     local_cnn = LocalCNNEncoder(
-        # kernel_size= config["local_cnn_encoder"]["kernel_size"],
-        # stride= config["local_cnn_encoder"]["stride"]
+        kernel_size= config["local_cnn_encoder"]["kernel_size"],
+        stride= config["local_cnn_encoder"]["stride"], 
+        feature_dim= config["local_cnn_encoder"]["feature_dim"],
+        dim_out= config["local_cnn_encoder"]["dim_out"]
     )
     global_cnn = GlobalCNNEncoder(
         input_dim= config["global_cnn_encoder"]["input_dim"], 
@@ -158,4 +173,4 @@ def build_cnn_encoder(config):
         n_layers= config["global_cnn_encoder"]["n_layers"],
         n_dropout= config["global_cnn_encoder"]["n_dropout"]
     )
-    return CNNEncoder(local_cnn, global_cnn, d_input= config["global_cnn_encoder"]["input_dim"], d_output= config["feature_dim"])
+    return CNNEncoder(local_cnn, global_cnn, d_input= config["global_cnn_encoder"]["input_dim"], d_output= config["dim_out"])

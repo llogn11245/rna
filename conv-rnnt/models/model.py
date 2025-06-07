@@ -72,7 +72,7 @@ class Transducer(nn.Module):
         zero = torch.zeros((targets.shape[0], 1)).long()
         if targets.is_cuda: zero = zero.cuda()
         
-        targets_add_blank = torch.cat((zero, targets), dim=1)
+        targets_add_blank = torch.cat((targets, zero), dim=1)
         #################################
         # Process through CNN encoder first
         cnn_output = self.cnn_encoder(inputs)
